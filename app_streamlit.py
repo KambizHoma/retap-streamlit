@@ -295,7 +295,7 @@ def get_metrics(df: pd.DataFrame, threshold: float):
 
 # Header
 st.markdown("""
-# RETAP: Real-Time Bank Transaction Anomaly Platform
+# TransGuard: Real-Time Bank Transaction Anomaly Platform
 **Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance
 """)
 
@@ -363,7 +363,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("""
-    ### About RETAP
+    ### About TransGuard
     
     Real-time anomaly detection using:
     - **Online Learning**: Isolation Forest
@@ -412,7 +412,7 @@ else:
 # Footer
 st.markdown("""
 ---
-**RETAP v1.0** | Nippotica Corporation | Nippofin Business Unit | Powered by Isolation Forest ML
+**TransGuard v1.0** | Nippotica Corporation | Nippofin Business Unit | Powered by Isolation Forest ML
 """)
 
 #############################################
