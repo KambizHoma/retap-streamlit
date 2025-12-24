@@ -399,15 +399,18 @@ st.markdown("### Score Distribution")
 dist_plot = create_distribution_plot(df, st.session_state.threshold)
 st.plotly_chart(dist_plot, use_container_width=True)
 
-# Transaction table - Most Suspicious
-st.markdown("### 🚨 Most Suspicious Transactions (Top 100)")
-display_df = df[["ts", "sender", "receiver", "amount", "score"]].copy()
-if not display_df.empty:
-    # Sort by score descending and take top 100
-    display_df = display_df.sort_values("score", ascending=False).head(100)
-    display_df["ts"] = display_df["ts"].dt.strftime("%H:%M:%S")
-    display_df["score"] = display_df["score"].round(3)
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+# Transaction table - Only Alerts
+st.markdown("### 🚨 Alert Transactions")
+alert_df = df[df["score"] >= st.session_state.threshold][["ts", "sender", "receiver", "amount", "score"]].copy()
+if not alert_df.empty:
+    # Sort by score descending
+    alert_df = alert_df.sort_values("score", ascending=False)
+    alert_df["ts"] = alert_df["ts"].dt.strftime("%H:%M:%S")
+    alert_df["score"] = alert_df["score"].round(3)
+    st.dataframe(alert_df, use_container_width=True, hide_index=True)
+    st.caption(f"Showing {len(alert_df)} alert transaction(s) with score ≥ {st.session_state.threshold:.2f}")
+elif not df.empty:
+    st.success("✅ No alerts in current window. All transactions are normal.")
 else:
     st.info("No transactions yet. Click 'Step Once' or 'Start Stream' to generate data.")
 
