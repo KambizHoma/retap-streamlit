@@ -16,7 +16,7 @@ from retap_core import TxSimulator, OnlineAnomalyModel, Featureizer
 
 st.set_page_config(
     page_title="TransGuard - Real-Time Bank Transaction Anomaly Platform",
-    page_icon="🛡️",
+    page_icon="nippotica_icon.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
