@@ -1,0 +1,8 @@
+{
+  "seed": 42,
+  "tx_per_second": 10,
+  "num_senders": 50,
+  "num_receivers": 50,
+  "burst_prob": 0.10,     
+  "anomaly_prob": 0.15    
+}
