@@ -16,7 +16,7 @@ from retap_core import TxSimulator, OnlineAnomalyModel, Featureizer
 
 st.set_page_config(
     page_title="TransGuard - Real-Time Bank Transaction Anomaly Platform",
-    page_icon="🛡️",
+    page_icon="nippotica_icon.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -399,12 +399,10 @@ st.markdown("### Score Distribution")
 dist_plot = create_distribution_plot(df, st.session_state.threshold)
 st.plotly_chart(dist_plot, use_container_width=True)
 
-# Transaction table - Most Suspicious
-st.markdown("### 🚨 Most Suspicious Transactions (Top 100)")
-display_df = df[["ts", "sender", "receiver", "amount", "score"]].copy()
+# Transaction table
+st.markdown("### Recent Transactions (Last 100)")
+display_df = df[["ts", "sender", "receiver", "amount", "score"]].tail(100).copy()
 if not display_df.empty:
-    # Sort by score descending and take top 100
-    display_df = display_df.sort_values("score", ascending=False).head(100)
     display_df["ts"] = display_df["ts"].dt.strftime("%H:%M:%S")
     display_df["score"] = display_df["score"].round(3)
     st.dataframe(display_df, use_container_width=True, hide_index=True)
