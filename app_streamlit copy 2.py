@@ -95,133 +95,123 @@ def generate_step(window_seconds: int):
 # VISUALIZATION FUNCTIONS
 #############################################
 
-def create_scatter_plot(df: pd.DataFrame, threshold: float):
-    """Create dot-size scatter plot showing anomaly score distribution"""
+def create_time_series_plot(df: pd.DataFrame, threshold: float):
+    """Create stem plot (lollipop chart) matching Energex style"""
     if df.empty:
         fig = go.Figure()
         fig.add_annotation(
-            text="No data yet. Click 'Step Once' or 'Start Stream'",
+            text="No data yet. Click 'Step Once' or toggle 'Run Stream'",
             xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False,
             font=dict(size=14, color="#666666")
         )
         fig.update_layout(
-            height=450,
+            height=350,
             template="plotly_white",
-            margin=dict(l=60, r=20, t=30, b=60)
+            margin=dict(l=40, r=20, t=30, b=40)
         )
         return fig
     
-    # Calculate score distribution
-    # Bin scores into discrete levels for cleaner visualization
-    num_bins = 50  # More bins for finer granularity
-    score_bins = np.linspace(0, 1, num_bins + 1)
-    df['score_bin'] = pd.cut(df['score'], bins=score_bins, labels=False, include_lowest=True)
+    # Sort by time
+    df = df.sort_values("ts").tail(2000).copy()
     
-    # Calculate percentage for each bin
-    total_count = len(df)
-    bin_counts = df.groupby('score_bin').size()
-    bin_percentages = (bin_counts / total_count * 100).to_dict()
+    # Remove duplicate timestamps - keep last occurrence
+    df = df.drop_duplicates(subset=['ts'], keep='last')
     
-    # Calculate actual score values for each bin (midpoint)
-    bin_scores = {}
-    for bin_idx in bin_counts.index:
-        bin_scores[bin_idx] = (score_bins[bin_idx] + score_bins[bin_idx + 1]) / 2
-    
-    # Determine if each bin is alert or normal
-    bin_is_alert = {bin_idx: bin_scores[bin_idx] >= threshold for bin_idx in bin_counts.index}
-    
-    # Prepare data for plotting
-    normal_bins = [(bin_idx, bin_scores[bin_idx], bin_percentages[bin_idx]) 
-                   for bin_idx in bin_counts.index if not bin_is_alert[bin_idx]]
-    alert_bins = [(bin_idx, bin_scores[bin_idx], bin_percentages[bin_idx]) 
-                  for bin_idx in bin_counts.index if bin_is_alert[bin_idx]]
+    # Mark alerts
+    df["alert"] = df["score"] >= threshold
     
     # Create figure
     fig = go.Figure()
     
-    # Add normal score dots
-    if normal_bins:
-        normal_scores = [x[1] for x in normal_bins]
-        normal_percentages = [x[2] for x in normal_bins]
-        # Scale dot sizes: percentage determines size
-        # Min size 4, max size 40, scaled by percentage
-        normal_sizes = [max(4, min(40, p * 1.5)) for p in normal_percentages]
+    # Create stems efficiently using single trace with None separators
+    df_normal = df[~df["alert"]]
+    if not df_normal.empty:
+        # Build stems as one trace with None separators
+        x_stems = []
+        y_stems = []
+        for _, row in df_normal.iterrows():
+            x_stems.extend([row["ts"], row["ts"], None])
+            y_stems.extend([0, row["score"], None])
         
+        # All stems in one trace
         fig.add_trace(go.Scatter(
-            x=normal_percentages,
-            y=normal_scores,
+            x=x_stems,
+            y=y_stems,
+            mode='lines',
+            line=dict(color='#9b59b6', width=1.5),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        
+        # All dots in one trace
+        fig.add_trace(go.Scatter(
+            x=df_normal["ts"],
+            y=df_normal["score"],
             mode='markers',
-            marker=dict(
-                size=normal_sizes,
-                color='rgba(155, 89, 182, 0.6)',
-                line=dict(color='#9b59b6', width=1)
-            ),
+            marker=dict(size=4, color='#9b59b6'),
             name='Normal',
-            hovertemplate='<b>Score: %{y:.3f}</b><br>Percentage: %{x:.2f}%<br><extra></extra>'
+            hovertemplate='<b>%{x}</b><br>Score: %{y:.3f}<extra></extra>'
         ))
     
-    # Add alert score dots
-    if alert_bins:
-        alert_scores = [x[1] for x in alert_bins]
-        alert_percentages = [x[2] for x in alert_bins]
-        # Scale dot sizes for alerts
-        alert_sizes = [max(6, min(40, p * 1.5)) for p in alert_percentages]
+    # Alert scores - red stems with diamond dots
+    df_alert = df[df["alert"]]
+    if not df_alert.empty:
+        # Build stems as one trace with None separators
+        x_stems = []
+        y_stems = []
+        for _, row in df_alert.iterrows():
+            x_stems.extend([row["ts"], row["ts"], None])
+            y_stems.extend([0, row["score"], None])
         
+        # All stems in one trace
         fig.add_trace(go.Scatter(
-            x=alert_percentages,
-            y=alert_scores,
+            x=x_stems,
+            y=y_stems,
+            mode='lines',
+            line=dict(color='#d62728', width=2),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+        
+        # All dots in one trace
+        fig.add_trace(go.Scatter(
+            x=df_alert["ts"],
+            y=df_alert["score"],
             mode='markers',
-            marker=dict(
-                size=alert_sizes,
-                color='rgba(214, 39, 40, 0.6)',
-                line=dict(color='#d62728', width=2),
-                symbol='diamond'
-            ),
+            marker=dict(size=6, color='#d62728', symbol='diamond'),
             name='Alert',
-            hovertemplate='<b>🚨 ALERT</b><br>Score: %{y:.3f}<br>Percentage: %{x:.2f}%<br><extra></extra>'
+            hovertemplate='<b>🚨 ALERT</b><br>%{x}<br>Score: %{y:.3f}<extra></extra>'
         ))
     
-    # Add threshold line (horizontal)
+    # Threshold line
     fig.add_hline(
         y=threshold,
-        line=dict(color='#d62728', width=1),
+        line_dash="dash",
+        line_color="#d62728",
+        line_width=1.5,
         annotation_text=f"Threshold ({threshold:.2f})",
-        annotation_position="right",
-        annotation=dict(font=dict(size=10, color='#d62728'))
+        annotation_position="right"
     )
     
-    # Add gridlines at 0.25 intervals on Y-axis
-    for y_val in [0.0, 0.25, 0.5, 0.75, 1.0]:
-        if y_val != threshold:  # Don't duplicate threshold line
-            fig.add_hline(
-                y=y_val,
-                line=dict(color='#dddddd', width=0.5),
-                annotation_text=f"{y_val:.2f}",
-                annotation_position="left",
-                annotation=dict(font=dict(size=9, color='#666666'), xshift=-10)
-            )
-    
-    # Layout
+    # Layout matching Energex style
     fig.update_layout(
-        height=450,
+        height=350,
         template="plotly_white",
         showlegend=True,
         hovermode='closest',
-        xaxis_title="Percentage of Transactions (%)",
+        xaxis_title="Time (UTC)",
         yaxis_title="Anomaly Score",
-        margin=dict(l=60, r=20, t=30, b=60),
+        margin=dict(l=40, r=20, t=30, b=60),
         font=dict(family="Arial, sans-serif", size=11),
         xaxis=dict(
-            showgrid=False,  # No vertical gridlines
-            range=[0, max(100, max(bin_percentages.values()) * 1.1) if bin_percentages else 100],
-            ticksuffix='%'
+            showgrid=True, 
+            gridwidth=1, 
+            gridcolor='lightgray',
+            tickangle=-45,
+            tickformat='%H:%M:%S'
         ),
-        yaxis=dict(
-            range=[0, 1],
-            showgrid=False,  # Gridlines added manually above
-            dtick=0.25
-        ),
+        yaxis=dict(range=[0, 1], showgrid=True, gridwidth=1, gridcolor='lightgray'),
         legend=dict(
             orientation="h",
             yanchor="top",
@@ -236,6 +226,50 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
     
     return fig
 
+
+def create_distribution_plot(df: pd.DataFrame, threshold: float):
+    """Create histogram of score distribution"""
+    if df.empty:
+        fig = go.Figure()
+        fig.update_layout(height=150, template="plotly_white", margin=dict(l=40, r=20, t=20, b=40))
+        return fig
+    
+    df["alert"] = df["score"] >= threshold
+    
+    # Create histogram
+    fig = go.Figure()
+    
+    # Normal scores
+    fig.add_trace(go.Histogram(
+        x=df[~df["alert"]]["score"],
+        nbinsx=30,
+        name="Normal",
+        marker_color="#1f77b4",
+        opacity=0.7
+    ))
+    
+    # Alert scores
+    if df["alert"].any():
+        fig.add_trace(go.Histogram(
+            x=df[df["alert"]]["score"],
+            nbinsx=30,
+            name="Alert",
+            marker_color="#d62728",
+            opacity=0.7
+        ))
+    
+    fig.update_layout(
+        height=150,
+        template="plotly_white",
+        xaxis_title="Score",
+        yaxis_title="Count",
+        barmode='stack',
+        margin=dict(l=40, r=20, t=20, b=40),
+        showlegend=False,
+        font=dict(family="IBM Plex Sans, ui-sans-serif, system-ui, sans-serif")
+    )
+    
+    return fig
 
 
 def get_metrics(df: pd.DataFrame, threshold: float):
@@ -328,42 +362,14 @@ with st.sidebar:
     st.json(st.session_state.cfg)
     
     st.markdown("---")
-    st.markdown("### About TransGuard")
-    
     st.markdown("""
+    ### About TransGuard
+    
     Real-time anomaly detection using:
     - **Online Learning**: Isolation Forest
     - **Welford's Algorithm**: Efficient streaming statistics
     - **Z-Score Features**: Per-sender normalization
-    """)
     
-    # Key Features tooltip
-    with st.expander("ℹ️ Visualization Features"):
-        st.markdown("""
-        **Key Features:**
-        - **Y-axis = Anomaly Score (0.0 to 1.0)** - vertical position shows score
-        - **X-axis = Percentage (%)** - horizontal position shows what % of transactions have that score
-        - **Dot Size = Frequency** - larger dots mean more transactions at that score level
-        - ONE dot per score level - no clutter, very clean
-        - Dots positioned in exact horizontal rows (no vertical jitter)
-        - Hairline gridlines help read exact score values
-        - Red threshold line clearly separates normal from alerts
-        """)
-    
-    # Animation Behavior tooltip
-    with st.expander("ℹ️ Animation Behavior"):
-        st.markdown("""
-        **How the visualization updates:**
-        - As new transactions arrive, dots smoothly grow or shrink
-        - Dot positions shift horizontally as percentages change
-        - **Example:** If score 0.85 goes from 20% → 25%, dot grows AND shifts right
-        - Time window keeps total transaction count stable
-        - **Visual effect:** dots "breathe" and flow as patterns evolve
-        - Normal scores (bottom) typically show large dots extending far right
-        - Alert scores (top) typically show small dots staying on the left
-        """)
-    
-    st.markdown("""
     **Contact:** nippofin@nippotica.jp
     """)
 
@@ -383,10 +389,15 @@ with col3:
 with col4:
     st.metric("Status", status)
 
-# Scatter plot - Main visualization
-st.markdown("### Anomaly Score Distribution")
-scatter_plot = create_scatter_plot(df, st.session_state.threshold)
-st.plotly_chart(scatter_plot, use_container_width=True)
+# Time series plot
+st.markdown("### Anomaly Score Timeline")
+time_plot = create_time_series_plot(df, st.session_state.threshold)
+st.plotly_chart(time_plot, use_container_width=True)
+
+# Distribution plot
+st.markdown("### Score Distribution")
+dist_plot = create_distribution_plot(df, st.session_state.threshold)
+st.plotly_chart(dist_plot, use_container_width=True)
 
 # Transaction table - Only Alerts
 st.markdown("### 🚨 Alert Transactions")
