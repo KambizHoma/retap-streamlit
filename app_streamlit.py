@@ -100,7 +100,7 @@ def create_kde_plot(df: pd.DataFrame, threshold: float):
     if df.empty or len(df) < 3:  # Need at least 3 points for KDE
         fig = go.Figure()
         fig.add_annotation(
-            text="Not enough data for distribution",
+            text="Ready for data",
             xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False,
             font=dict(size=12, color="#666666")
