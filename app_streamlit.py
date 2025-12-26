@@ -411,18 +411,10 @@ with col3:
 with col4:
     st.metric("Status", status)
 
-# Scatter plot - Main visualization (wrapped in fragment for smooth updates)
+# Scatter plot - Main visualization
 st.markdown("### Anomaly Score Distribution")
-
-@st.experimental_fragment
-def render_scatter_plot():
-    """Fragment that updates only the scatter plot, not the entire page"""
-    df = st.session_state.df.copy()
-    threshold = st.session_state.threshold
-    scatter_plot = create_scatter_plot(df, threshold)
-    st.plotly_chart(scatter_plot, use_container_width=True)
-
-render_scatter_plot()
+scatter_plot = create_scatter_plot(df, st.session_state.threshold)
+st.plotly_chart(scatter_plot, use_container_width=True, key="scatter_plot")
 
 # Transaction table - Only Alerts
 st.markdown("### 🚨 Alert Transactions")
@@ -452,5 +444,5 @@ st.markdown("""
 # If stream is running, generate a step and rerun
 if st.session_state.is_running:
     generate_step(st.session_state.window_seconds)
-    time.sleep(1)  # Wait 1 second between updates
+    time.sleep(1.5)  # Wait 1.5 seconds between updates for smoother animation
     st.rerun()
