@@ -251,7 +251,7 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
         ),
         # Add transition for smoother animation
         transition=dict(
-            duration=800,  # Slower transition for size changes
+            duration=1200,  # 1200ms transition for smooth size changes
             easing='cubic-in-out'
         )
     )
@@ -283,10 +283,9 @@ def get_metrics(df: pd.DataFrame, threshold: float):
 
 # Header
 st.markdown("""
-# TransGuard
-Real-Time Bank Transaction Anomaly Platform
-
+# TransGuard: Real-Time Bank Transaction Anomaly Platform
 **Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance  
+*Version 3.0 - Jitter-Based Distribution with Size Animation*
 """)
 
 # Sidebar - Controls
@@ -415,7 +414,7 @@ with col4:
 # Scatter plot - Main visualization
 st.markdown("### Anomaly Score Distribution")
 scatter_plot = create_scatter_plot(df, st.session_state.threshold)
-st.plotly_chart(scatter_plot, use_container_width=True)
+st.plotly_chart(scatter_plot, use_container_width=True, key="scatter_plot")
 
 # Transaction table - Only Alerts
 st.markdown("### 🚨 Alert Transactions")
@@ -435,7 +434,7 @@ else:
 # Footer
 st.markdown("""
 ---
-**TransGuard v3.0** | Nippotica Corporation | Nippofin Business Unit | Powered by Isolation Forest ML
+**TransGuard v1.0** | Nippotica Corporation | Nippofin Business Unit | Powered by Isolation Forest ML
 """)
 
 #############################################
@@ -445,5 +444,5 @@ st.markdown("""
 # If stream is running, generate a step and rerun
 if st.session_state.is_running:
     generate_step(st.session_state.window_seconds)
-    time.sleep(1)  # Wait 1 second between updates
+    time.sleep(1.5)  # Wait 1.5 seconds between updates for smoother animation
     st.rerun()

@@ -95,6 +95,129 @@ def generate_step(window_seconds: int):
 # VISUALIZATION FUNCTIONS
 #############################################
 
+def create_kde_plot(df: pd.DataFrame, threshold: float):
+    """Create KDE (Kernel Density Estimation) distribution plot"""
+    if df.empty or len(df) < 3:  # Need at least 3 points for KDE
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Not enough data for distribution",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=12, color="#666666")
+        )
+        fig.update_layout(
+            height=450,
+            template="plotly_white",
+            margin=dict(l=50, r=20, t=50, b=50)
+        )
+        return fig
+    
+    from scipy import stats
+    
+    # Get scores
+    scores = df['score'].values
+    
+    # Create KDE with appropriate bandwidth
+    try:
+        kde = stats.gaussian_kde(scores, bw_method=0.1)
+    except:
+        # Fallback if KDE fails
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Unable to generate distribution",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=12, color="#666666")
+        )
+        fig.update_layout(height=450, template="plotly_white")
+        return fig
+    
+    # Generate smooth curve points
+    x_range = np.linspace(0, 1, 300)
+    density = kde(x_range)
+    
+    # Split into normal and alert regions
+    normal_mask = x_range < threshold
+    alert_mask = x_range >= threshold
+    
+    # Create figure
+    fig = go.Figure()
+    
+    # Normal region - filled area in light blue
+    if normal_mask.any():
+        fig.add_trace(go.Scatter(
+            x=x_range[normal_mask],
+            y=density[normal_mask],
+            mode='lines',
+            name='Normal',
+            line=dict(color='#87CEEB', width=2),
+            fill='tozeroy',
+            fillcolor='rgba(135, 206, 235, 0.3)',
+            hovertemplate='Score: %{x:.3f}<br>Density: %{y:.2f}<extra></extra>'
+        ))
+    
+    # Alert region - filled area in orange
+    if alert_mask.any():
+        fig.add_trace(go.Scatter(
+            x=x_range[alert_mask],
+            y=density[alert_mask],
+            mode='lines',
+            name='Alert',
+            line=dict(color='#FF8C00', width=2),
+            fill='tozeroy',
+            fillcolor='rgba(255, 140, 0, 0.3)',
+            hovertemplate='Score: %{x:.3f}<br>Density: %{y:.2f}<extra></extra>'
+        ))
+    
+    # Threshold line
+    fig.add_vline(
+        x=threshold,
+        line=dict(color='#FF8C00', width=1.5, dash='dash'),
+        annotation_text=f"Threshold",
+        annotation_position="top",
+        annotation=dict(font=dict(size=10, color='#FF8C00'))
+    )
+    
+    # Layout
+    fig.update_layout(
+        height=450,
+        template="plotly_white",
+        showlegend=True,
+        xaxis_title="Anomaly Score",
+        yaxis_title="Density",
+        margin=dict(l=50, r=20, t=30, b=50),
+        font=dict(family="Arial, sans-serif", size=11),
+        xaxis=dict(
+            range=[0, 1],
+            showgrid=True,
+            gridwidth=0.5,
+            gridcolor='#e8e8e8',
+            fixedrange=True
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridwidth=0.5,
+            gridcolor='#e8e8e8',
+            fixedrange=True
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=0.98,
+            xanchor="left",
+            x=0.01,
+            bgcolor='rgba(255, 255, 255, 0.9)',
+            bordercolor='lightgray',
+            borderwidth=1
+        ),
+        transition=dict(
+            duration=1200,
+            easing='cubic-in-out'
+        )
+    )
+    
+    return fig
+
 def create_scatter_plot(df: pd.DataFrame, threshold: float):
     """Create dot-size scatter plot with random jitter for visual separation - v3.0"""
     if df.empty:
@@ -411,10 +534,20 @@ with col3:
 with col4:
     st.metric("Status", status)
 
-# Scatter plot - Main visualization
-st.markdown("### Anomaly Score Distribution")
-scatter_plot = create_scatter_plot(df, st.session_state.threshold)
-st.plotly_chart(scatter_plot, use_container_width=True, key="scatter_plot")
+# Visualization row - Scatter plot and KDE distribution side-by-side
+st.markdown("### Anomaly Score Visualization")
+
+col_left, col_right = st.columns(2)
+
+with col_left:
+    st.markdown("**Distribution Plot**")
+    scatter_plot = create_scatter_plot(df, st.session_state.threshold)
+    st.plotly_chart(scatter_plot, use_container_width=True, key="scatter_plot")
+
+with col_right:
+    st.markdown("**Density Curve**")
+    kde_plot = create_kde_plot(df, st.session_state.threshold)
+    st.plotly_chart(kde_plot, use_container_width=True, key="kde_plot")
 
 # Transaction table - Only Alerts
 st.markdown("### 🚨 Alert Transactions")

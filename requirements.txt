@@ -1,5 +1,6 @@
-streamlit
+-e streamlit
 pandas
 numpy
 scikit-learn
 plotly
+scipy
