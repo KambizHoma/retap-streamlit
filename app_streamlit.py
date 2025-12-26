@@ -283,9 +283,9 @@ def get_metrics(df: pd.DataFrame, threshold: float):
 
 # Header
 st.markdown("""
-# TransGuard: Real-Time Bank Transaction Anomaly Platform
+# TransGuard
+Real-Time Bank Transaction Anomaly Platform
 **Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance  
-*Version 3.0 - Jitter-Based Distribution with Size Animation*
 """)
 
 # Sidebar - Controls
@@ -434,7 +434,7 @@ else:
 # Footer
 st.markdown("""
 ---
-**TransGuard v1.0** | Nippotica Corporation | Nippofin Business Unit | Powered by Isolation Forest ML
+**TransGuard v3.0** | Nippotica Corporation | Nippofin Business Unit | Powered by Isolation Forest ML
 """)
 
 #############################################
