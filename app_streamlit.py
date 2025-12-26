@@ -169,14 +169,7 @@ def create_kde_plot(df: pd.DataFrame, threshold: float):
             hovertemplate='Score: %{x:.3f}<br>Density: %{y:.2f}<extra></extra>'
         ))
     
-    # Threshold line
-    fig.add_vline(
-        x=threshold,
-        line=dict(color='#FF8C00', width=1.5, dash='dash'),
-        annotation_text=f"Threshold",
-        annotation_position="top",
-        annotation=dict(font=dict(size=10, color='#FF8C00'))
-    )
+
     
     # Layout
     fig.update_layout(
