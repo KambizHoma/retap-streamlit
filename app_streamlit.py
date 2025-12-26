@@ -96,7 +96,7 @@ def generate_step(window_seconds: int):
 #############################################
 
 def create_scatter_plot(df: pd.DataFrame, threshold: float):
-    """Create dot-size scatter plot showing anomaly score distribution - v2.0"""
+    """Create dot-size scatter plot with random jitter for visual separation - v3.0"""
     if df.empty:
         fig = go.Figure()
         fig.add_annotation(
@@ -140,65 +140,71 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
     alert_bins = [(bin_idx, bin_scores[bin_idx], bin_percentages[bin_idx]) 
                   for bin_idx in bin_counts.index if bin_is_alert[bin_idx]]
     
-    # Calculate dynamic X-axis range based on actual data
-    if bin_percentages:
-        max_percentage = max(bin_percentages.values())
-        # Add 20% padding, but minimum 5%
-        x_axis_max = max(max_percentage * 1.2, 5.0)
-    else:
-        x_axis_max = 10.0
+    # Create stable random jitter for each bin using bin_idx as seed
+    # This ensures same score always appears at same X-position
+    def get_jitter_x(bin_idx):
+        np.random.seed(bin_idx * 1000)  # Stable seed based on bin
+        return np.random.uniform(15, 85)  # Random position between 15-85%
     
-    # Create figure with unique key to prevent caching
+    # Create figure
     fig = go.Figure()
     
     # Add normal score dots - light blue solid circles
     if normal_bins:
         normal_scores = [x[1] for x in normal_bins]
         normal_percentages = [x[2] for x in normal_bins]
+        normal_x_positions = [get_jitter_x(x[0]) for x in normal_bins]
+        
         # Scale dot sizes: percentage determines size
-        # Min size 6, max size 40, scaled by percentage
-        normal_sizes = [max(6, min(40, p * 2.0)) for p in normal_percentages]
+        # Min size 8, max size 50, scaled by percentage
+        normal_sizes = [max(8, min(50, p * 2.5)) for p in normal_percentages]
         
         fig.add_trace(go.Scatter(
-            x=normal_percentages,
+            x=normal_x_positions,
             y=normal_scores,
             mode='markers',
             marker=dict(
                 size=normal_sizes,
                 color='#87CEEB',  # Light blue (Sky Blue)
-                line=dict(width=0)  # No border
+                line=dict(width=0),  # No border
+                opacity=0.7
             ),
             name='Normal',
-            hovertemplate='<b>Score: %{y:.3f}</b><br>Percentage: %{x:.2f}%<br><extra></extra>'
+            hovertemplate='<b>Score: %{y:.3f}</b><br>Frequency: %{customdata:.2f}%<br><extra></extra>',
+            customdata=normal_percentages
         ))
     
     # Add alert score dots - orange solid circles
     if alert_bins:
         alert_scores = [x[1] for x in alert_bins]
         alert_percentages = [x[2] for x in alert_bins]
+        alert_x_positions = [get_jitter_x(x[0]) for x in alert_bins]
+        
         # Scale dot sizes for alerts
-        alert_sizes = [max(8, min(40, p * 2.0)) for p in alert_percentages]
+        alert_sizes = [max(10, min(50, p * 2.5)) for p in alert_percentages]
         
         fig.add_trace(go.Scatter(
-            x=alert_percentages,
+            x=alert_x_positions,
             y=alert_scores,
             mode='markers',
             marker=dict(
                 size=alert_sizes,
                 color='#FF8C00',  # Orange (Dark Orange)
-                line=dict(width=0)  # No border
+                line=dict(width=0),  # No border
+                opacity=0.8
             ),
             name='Alert',
-            hovertemplate='<b>🚨 ALERT</b><br>Score: %{y:.3f}<br>Percentage: %{x:.2f}%<br><extra></extra>'
+            hovertemplate='<b>🚨 ALERT</b><br>Score: %{y:.3f}<br>Frequency: %{customdata:.2f}%<br><extra></extra>',
+            customdata=alert_percentages
         ))
     
     # Add threshold line (horizontal)
     fig.add_hline(
         y=threshold,
-        line=dict(color='#FF8C00', width=1),  # Orange to match alerts
+        line=dict(color='#FF8C00', width=1.5),  # Orange to match alerts
         annotation_text=f"Threshold ({threshold:.2f})",
         annotation_position="right",
-        annotation=dict(font=dict(size=10, color='#FF8C00'))
+        annotation=dict(font=dict(size=10, color='#FF8C00', weight='bold'))
     )
     
     # Add gridlines at 0.25 intervals on Y-axis
@@ -206,31 +212,33 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
         if abs(y_val - threshold) > 0.01:  # Don't duplicate threshold line
             fig.add_hline(
                 y=y_val,
-                line=dict(color='#e0e0e0', width=0.5),  # Lighter gray for subtlety
+                line=dict(color='#e8e8e8', width=0.5),  # Very light gray for subtlety
                 annotation_text=f"{y_val:.2f}",
                 annotation_position="left",
                 annotation=dict(font=dict(size=9, color='#999999'), xshift=-10)
             )
     
-    # Layout with dynamic X-axis
+    # Layout with static axes
     fig.update_layout(
         height=450,
         template="plotly_white",
         showlegend=True,
         hovermode='closest',
-        xaxis_title="Percentage of Transactions (%)",
+        xaxis_title="",  # No X-axis title (meaningless jitter)
         yaxis_title="Anomaly Score",
-        margin=dict(l=60, r=20, t=30, b=60),
+        margin=dict(l=60, r=20, t=30, b=40),
         font=dict(family="Arial, sans-serif", size=11),
         xaxis=dict(
-            showgrid=False,  # No vertical gridlines
-            range=[0, x_axis_max],  # Dynamic range based on data
-            ticksuffix='%'
+            showgrid=False,  # No gridlines
+            showticklabels=False,  # No tick labels
+            range=[0, 100],  # Fixed range 0-100
+            fixedrange=True  # Prevent zooming/panning
         ),
         yaxis=dict(
             range=[0, 1],
             showgrid=False,  # Gridlines added manually above
-            dtick=0.25
+            dtick=0.25,
+            fixedrange=True  # Prevent zooming/panning
         ),
         legend=dict(
             orientation="h",
@@ -238,13 +246,13 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
             y=0.98,
             xanchor="left",
             x=0.01,
-            bgcolor='rgba(255, 255, 255, 0.8)',
+            bgcolor='rgba(255, 255, 255, 0.9)',
             bordercolor='lightgray',
             borderwidth=1
         ),
         # Add transition for smoother animation
         transition=dict(
-            duration=500,  # 500ms transition
+            duration=800,  # Slower transition for size changes
             easing='cubic-in-out'
         )
     )
@@ -278,7 +286,7 @@ def get_metrics(df: pd.DataFrame, threshold: float):
 st.markdown("""
 # TransGuard: Real-Time Bank Transaction Anomaly Platform
 **Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance  
-*Version 2.0 - Dynamic Scaling & Smooth Animation*
+*Version 3.0 - Jitter-Based Distribution with Size Animation*
 """)
 
 # Sidebar - Controls
@@ -358,13 +366,12 @@ with st.sidebar:
         st.markdown("""
         **Key Features:**
         - **Y-axis = Anomaly Score (0.0 to 1.0)** - vertical position shows score
-        - **X-axis = Percentage (%)** - horizontal position shows what % of transactions have that score
-        - **X-axis auto-scales** - range adjusts to actual data for optimal spread
+        - **X-axis = Random Distribution** - horizontal spread for visual clarity (no meaning)
         - **Dot Size = Frequency** - larger dots mean more transactions at that score level
         - **Light Blue circles** - normal transactions
         - **Orange circles** - alert transactions above threshold
         - ONE dot per score level - no clutter, very clean
-        - Dots positioned in exact horizontal rows (no vertical jitter)
+        - Dots stay in fixed positions - only SIZE changes over time
         - Hairline gridlines help read exact score values
         - Orange threshold line clearly separates normal from alerts
         """)
@@ -373,15 +380,16 @@ with st.sidebar:
     with st.expander("ℹ️ Animation Behavior"):
         st.markdown("""
         **How the visualization updates:**
-        - As new transactions arrive, dots smoothly grow or shrink
-        - Dot positions shift horizontally as percentages change
-        - X-axis range adjusts dynamically as distribution spreads or contracts
-        - **Example:** If score 0.85 goes from 20% → 25%, dot grows AND shifts right
+        - Dots remain in FIXED positions (both X and Y)
+        - As new transactions arrive, dots smoothly GROW or SHRINK
+        - **Only dot size animates** - easy to track changes
+        - Larger dot = more common score; smaller dot = rare score
+        - **Example:** If score 0.15 becomes more common, its dot grows
         - Time window keeps total transaction count stable
-        - **Visual effect:** dots "breathe" and flow as patterns evolve
+        - **Visual effect:** constellation of "breathing" dots
         - Normal scores (bottom) typically show large light blue dots
-        - Alert scores (top) typically show small orange dots on the left
-        - Smooth 500ms transitions reduce visual jerkiness
+        - Alert scores (top) typically show small orange dots
+        - Smooth 800ms transitions for natural pulsing effect
         """)
     
     st.markdown("""
