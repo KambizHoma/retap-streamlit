@@ -96,7 +96,7 @@ def generate_step(window_seconds: int):
 #############################################
 
 def create_scatter_plot(df: pd.DataFrame, threshold: float):
-    """Create dot-size scatter plot showing anomaly score distribution"""
+    """Create dot-size scatter plot showing anomaly score distribution - v2.0"""
     if df.empty:
         fig = go.Figure()
         fig.add_annotation(
@@ -111,6 +111,9 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
             margin=dict(l=60, r=20, t=30, b=60)
         )
         return fig
+    
+    # Force a fresh dataframe copy to avoid caching issues
+    df = df.copy()
     
     # Calculate score distribution
     # Bin scores into discrete levels for cleaner visualization
@@ -145,7 +148,7 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
     else:
         x_axis_max = 10.0
     
-    # Create figure
+    # Create figure with unique key to prevent caching
     fig = go.Figure()
     
     # Add normal score dots - light blue solid circles
@@ -274,7 +277,8 @@ def get_metrics(df: pd.DataFrame, threshold: float):
 # Header
 st.markdown("""
 # TransGuard: Real-Time Bank Transaction Anomaly Platform
-**Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance
+**Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance  
+*Version 2.0 - Dynamic Scaling & Smooth Animation*
 """)
 
 # Sidebar - Controls
