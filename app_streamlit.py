@@ -216,7 +216,7 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
     if df.empty:
         fig = go.Figure()
         fig.add_annotation(
-            text="No data yet. Click 'Step Once' or 'Start Stream'",
+            text="Click 'Start Stream'",
             xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False,
             font=dict(size=14, color="#666666")
