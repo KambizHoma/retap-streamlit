@@ -251,7 +251,7 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
         ),
         # Add transition for smoother animation
         transition=dict(
-            duration=1200,  # 1200ms transition for smooth size changes
+            duration=800,  # Slower transition for size changes
             easing='cubic-in-out'
         )
     )
@@ -283,9 +283,10 @@ def get_metrics(df: pd.DataFrame, threshold: float):
 
 # Header
 st.markdown("""
-# TransGuard: Real-Time Bank Transaction Anomaly Platform
+# TransGuard
+Real-Time Bank Transaction Anomaly Platform
+
 **Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance  
-*Version 3.0 - Jitter-Based Distribution with Size Animation*
 """)
 
 # Sidebar - Controls
@@ -411,18 +412,10 @@ with col3:
 with col4:
     st.metric("Status", status)
 
-# Scatter plot - Main visualization (wrapped in fragment for smooth updates)
+# Scatter plot - Main visualization
 st.markdown("### Anomaly Score Distribution")
-
-@st.experimental_fragment
-def render_scatter_plot():
-    """Fragment that updates only the scatter plot, not the entire page"""
-    df = st.session_state.df.copy()
-    threshold = st.session_state.threshold
-    scatter_plot = create_scatter_plot(df, threshold)
-    st.plotly_chart(scatter_plot, use_container_width=True)
-
-render_scatter_plot()
+scatter_plot = create_scatter_plot(df, st.session_state.threshold)
+st.plotly_chart(scatter_plot, use_container_width=True)
 
 # Transaction table - Only Alerts
 st.markdown("### 🚨 Alert Transactions")
@@ -442,7 +435,7 @@ else:
 # Footer
 st.markdown("""
 ---
-**TransGuard v1.0** | Nippotica Corporation | Nippofin Business Unit | Powered by Isolation Forest ML
+**TransGuard v3.0** | Nippotica Corporation | Nippofin Business Unit | Powered by Isolation Forest ML
 """)
 
 #############################################
