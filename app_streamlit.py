@@ -212,10 +212,7 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
         if abs(y_val - threshold) > 0.01:  # Don't duplicate threshold line
             fig.add_hline(
                 y=y_val,
-                line=dict(color='#e8e8e8', width=0.5),  # Very light gray for subtlety
-                annotation_text=f"{y_val:.2f}",
-                annotation_position="left",
-                annotation=dict(font=dict(size=9, color='#999999'), xshift=-10)
+                line=dict(color='#e8e8e8', width=0.5)  # Very light gray gridlines only, no annotations
             )
     
     # Layout with static axes
@@ -238,7 +235,9 @@ def create_scatter_plot(df: pd.DataFrame, threshold: float):
             range=[0, 1],
             showgrid=False,  # Gridlines added manually above
             dtick=0.25,
-            fixedrange=True  # Prevent zooming/panning
+            fixedrange=True,  # Prevent zooming/panning
+            showticklabels=True,  # Show Y-axis tick labels
+            tickformat='.2f'  # Format as decimal with 2 places
         ),
         legend=dict(
             orientation="h",
@@ -348,20 +347,8 @@ with st.sidebar:
     st.session_state.threshold = threshold
     
     st.markdown("---")
-    st.markdown("### Configuration")
-    st.json(st.session_state.cfg)
     
-    st.markdown("---")
-    st.markdown("### About TransGuard")
-    
-    st.markdown("""
-    Real-time anomaly detection using:
-    - **Online Learning**: Isolation Forest
-    - **Welford's Algorithm**: Efficient streaming statistics
-    - **Z-Score Features**: Per-sender normalization
-    """)
-    
-    # Key Features tooltip
+    # Key Features tooltip - MOVED HERE (above Configuration)
     with st.expander("ℹ️ Visualization Features"):
         st.markdown("""
         **Key Features:**
@@ -376,7 +363,7 @@ with st.sidebar:
         - Orange threshold line clearly separates normal from alerts
         """)
     
-    # Animation Behavior tooltip
+    # Animation Behavior tooltip - MOVED HERE (above Configuration)
     with st.expander("ℹ️ Animation Behavior"):
         st.markdown("""
         **How the visualization updates:**
@@ -392,7 +379,19 @@ with st.sidebar:
         - Smooth 800ms transitions for natural pulsing effect
         """)
     
+    st.markdown("---")
+    st.markdown("### Configuration")
+    st.json(st.session_state.cfg)
+    
+    st.markdown("---")
+    st.markdown("### About TransGuard")
+    
     st.markdown("""
+    Real-time anomaly detection using:
+    - **Online Learning**: Isolation Forest
+    - **Welford's Algorithm**: Efficient streaming statistics
+    - **Z-Score Features**: Per-sender normalization
+    
     **Contact:** nippofin@nippotica.jp
     """)
 
