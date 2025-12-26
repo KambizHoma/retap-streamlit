@@ -285,6 +285,7 @@ def get_metrics(df: pd.DataFrame, threshold: float):
 st.markdown("""
 # TransGuard
 Real-Time Bank Transaction Anomaly Platform
+
 **Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance  
 """)
 
