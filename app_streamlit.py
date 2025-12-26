@@ -124,7 +124,7 @@ def create_kde_plot(df: pd.DataFrame, threshold: float):
         # Fallback if KDE fails
         fig = go.Figure()
         fig.add_annotation(
-            text="Unable to generate distribution",
+            text="Buffering data for distribution",
             xref="paper", yref="paper",
             x=0.5, y=0.5, showarrow=False,
             font=dict(size=12, color="#666666")
@@ -399,9 +399,10 @@ def get_metrics(df: pd.DataFrame, threshold: float):
 
 # Header
 st.markdown("""
-# TransGuard: Real-Time Bank Transaction Anomaly Platform
+# TransGuard: 
+Real-Time Bank Transaction Anomaly Platform
+
 **Nippotica Corporation** | Nippofin Business Unit | AI-Powered Surveillance  
-*Version 3.0 - Jitter-Based Distribution with Size Animation*
 """)
 
 # Sidebar - Controls
